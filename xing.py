@@ -117,7 +117,10 @@ def get_xing_employees(company, amount, username, password, sort):
     wait.until(EC.any_of(EC.url_contains('www.xing.com'),EC.title_is('XING'),EC.title_contains('MFA')))
 
     # Once the login is successful, we grab the cookie
-    login_cookie= driver.get_cookies()[2]['value']
+    cookies = driver.get_cookies()
+    for cookie in cookies:
+        if cookie['name'] == 'login':
+            login_cookie = cookie['value']
 
     # Remember to close the browser driver when you're done
     driver.quit()
@@ -230,7 +233,7 @@ def authenticated_call(employee_response, domain, format, custom_email, csv_sepa
 
         occupations_all = profile_details['occupations']
         occupations_list = [occupation['subline'] for occupation in occupations_all]
-        occupations = ', '.join(occupations_list)
+        occupations = '| '.join(occupations_list)
 
         if custom_email is None:
             email_address = generate_email(first_name,last_name,domain,format)
