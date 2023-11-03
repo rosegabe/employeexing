@@ -111,10 +111,14 @@ def get_xing_employees(company, amount, username, password, sort):
     # Submit the login form
     password_field.send_keys(Keys.RETURN)
 
-    # Wait for the login process to complete (adjust the timeout if needed)
     wait = WebDriverWait(driver, 10)
+    try:
+        # Wait for the login process to complete (adjust the timeout if needed)
+        wait.until(EC.any_of(EC.url_contains('www.xing.com'),EC.title_is('XING'),EC.title_contains('MFA')))
+    except:
+        print(f">>> Login was not successful.")
+        sys.exit(0)
 
-    wait.until(EC.any_of(EC.url_contains('www.xing.com'),EC.title_is('XING'),EC.title_contains('MFA')))
 
     # Once the login is successful, we grab the cookie
     cookies = driver.get_cookies()
@@ -173,10 +177,11 @@ def get_xing_employees(company, amount, username, password, sort):
         if employee_count_response.status_code == 200:
             json_response = employee_count_response.json()
             employee_count = json_response['data']['company']['employees']['total']
-
+            print(f">>> {employee_count} employees have been found.")
             if amount is None or amount >= 3000:
                 if employee_count >= 3000:
                     amount = 2999
+                    print(f">>>XING allows only extracting up to 3000 datasets.")
                 else:
                     amount = employee_count
 
@@ -290,6 +295,6 @@ if __name__ == '__main__':
     with open(output_file, 'w') as f:
             writer = csv.writer(f)
             writer.writerows(data_list)
-
+            print(f">>> Employee data saved to {output_file}.")
     if args.stdout:
         print('\n'.join(''.join(map(str,entry)) for entry in data_list))
