@@ -1,4 +1,5 @@
 import sys
+import string
 import requests
 import argparse
 import csv
@@ -10,24 +11,22 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from unidecode import unidecode
 
 def translate_characters(name):
     characters_mapping = {
-        'Ä': 'Ae',
-        'Ö': 'Oe',
-        'Ü': 'Ue',
         'ä': 'ae',
         'ö': 'oe',
         'ü': 'ue',
         'ß': 'ss',
-        "ã": "a",
         ";": "",
         " ": "-"
     }
-    translated_name = name
+    translated_name = name.lower()
     for character, replacement in characters_mapping.items():
         translated_name = translated_name.replace(character, replacement)
-    return translated_name
+
+    return unidecode(translated_name)
 
 def generate_email(first_name, last_name, domain, format_index, custom_format=None):
     formats = []
