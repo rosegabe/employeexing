@@ -12,16 +12,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from unidecode import unidecode
 
-def translate_characters(name):
+def translate_characters(name, args):
     characters_mapping = {
         'ä': 'ae',
         'ö': 'oe',
         'ü': 'ue',
         'ß': 'ss',
-        ";": "",
-        " ": "-"
+        ";": ""
     }
     translated_name = name.lower()
+    if " " in name:
+        translated_name = translated_name.replace(" ", args.double_name_separator)
     for character, replacement in characters_mapping.items():
         translated_name = translated_name.replace(character, replacement)
 
@@ -65,8 +66,8 @@ def unauthenticated_call(company, domain, format_index, custom_email, csv_separa
                 page_name = employee_data['pageName']
                 profile_url = f"https://www.xing.com/profile/{page_name}"
                 #employee_id = employee_data['id']
-                first_name = translate_characters(employee_data['firstName'].lower())
-                last_name = translate_characters(employee_data['lastName'].lower())
+                first_name = translate_characters(employee_data['firstName'].lower(), args)
+                last_name = translate_characters(employee_data['lastName'].lower(), args)
                 display_name = employee_data['displayName']
                 gender = employee_data['gender']
 
@@ -224,7 +225,7 @@ def authenticated_employee_parsing(employee_response, args, custom_email, api_ur
     employees = employee_response['data']['company']['employees']['edges']
 
     if args.csv_header:
-        data_list.append([f"Email Address{args.csv_separator}Alternative Email Address{args.csv_separator}Display-Name{args.csv_separator}Firstname{args.csv_separator}Lastname{args.csv_separator}Gender{args.csv_separator}City{args.csv_separator}Street{args.csv_separator}ZIP{args.csv_separator}Mobile Number{args.csv_separator}Fax Number{args.csv_separator}Telephone number{args.csv_separator}Occupations{args.csv_separator}Profile-URL"])
+        data_list.append([f"Email Address{args.csv_separator}Alternative Email Address{args.csv_separator}Display-Name{args.csv_separator}Firstname{args.csv_separator}Lastname{args.csv_separator}Gender{args.csv_separator}Occupations{args.csv_separator}Profile-URL{args.csv_separator}City{args.csv_separator}Street{args.csv_separator}ZIP{args.csv_separator}Mobile Number{args.csv_separator}Fax Number{args.csv_separator}Telephone number{args.csv_separator}"])
 
     # Extract and print employee information
     for edge in employees:
@@ -234,13 +235,13 @@ def authenticated_employee_parsing(employee_response, args, custom_email, api_ur
             profile_url = profile_details['clickReasonProfileUrl']['profileUrl']
         #employee_id = profile_details['id']
 
-        first_name = translate_characters(profile_details['firstName'].lower())
-        last_name = translate_characters(profile_details['lastName'].lower())
+        first_name = translate_characters(profile_details['firstName'].lower(), args)
+        last_name = translate_characters(profile_details['lastName'].lower(), args)
         display_name = profile_details['displayName']
         gender = profile_details['gender']
 
-        city = profile_details['location']['city']
-        street = profile_details['location']['street']
+        city =  translate_characters(profile_details['location']['city'], args) if profile_details['location']['city'] is not None else ""
+        street = translate_characters(profile_details['location']['street'], args) if profile_details['location']['street'] is not None else ""
         xing_email_address = ""
         mobile_number = ""
         fax_number = ""
@@ -279,7 +280,7 @@ def authenticated_employee_parsing(employee_response, args, custom_email, api_ur
         else:
             email_address = generate_email(first_name,last_name,args.domain,1,custom_email)
 
-        csv_entry = [f'{email_address}{args.csv_separator}{xing_email_address}{args.csv_separator}{display_name}{args.csv_separator}{first_name}{args.csv_separator}{last_name}{args.csv_separator}{gender}{args.csv_separator}{city}{args.csv_separator}{street}{args.csv_separator}{zip_code}{args.csv_separator}{mobile_number}{args.csv_separator}{fax_number}{args.csv_separator}{telephone_number}{args.csv_separator}{occupations}{args.csv_separator}{profile_url}']
+        csv_entry = [f'{email_address}{args.csv_separator}{xing_email_address}{args.csv_separator}{display_name}{args.csv_separator}{first_name}{args.csv_separator}{last_name}{args.csv_separator}{gender}{args.csv_separator}{occupations}{args.csv_separator}{profile_url}{args.csv_separator}{city}{args.csv_separator}{street}{args.csv_separator}{zip_code}{args.csv_separator}{mobile_number}{args.csv_separator}{fax_number}{args.csv_separator}{telephone_number}']
         data_list.append(csv_entry)
 
     return data_list
@@ -299,6 +300,7 @@ if __name__ == '__main__':
     parser.add_argument('--csv-separator', type=str, default=";", help='Desired CVS file separator, default: ";"')
     parser.add_argument("--csv-header", action="store_true", help="Include header in CSV file")
     parser.add_argument("--stdout", action="store_true", help="Print results to screen")
+    parser.add_argument('--double-name-separator', type=str, default="-", help='Desired separator for double names, default: "-"')
     args = parser.parse_args()
 
     if not args.company:
