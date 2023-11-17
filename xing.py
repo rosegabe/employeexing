@@ -221,7 +221,7 @@ def authenticated_call(args,custom_email):
 
 def authenticated_employee_parsing(employee_response, args, custom_email, api_url, headers):
     data_list = []
-    
+
     employees = employee_response['data']['company']['employees']['edges']
 
     if args.csv_header:
@@ -231,57 +231,58 @@ def authenticated_employee_parsing(employee_response, args, custom_email, api_ur
     for edge in employees:
         node = edge['node']
         profile_details = node['profileDetails']
-        if profile_details['clickReasonProfileUrl']:
-            profile_url = profile_details['clickReasonProfileUrl']['profileUrl']
-        #employee_id = profile_details['id']
-
-        first_name = translate_characters(profile_details['firstName'].lower(), args)
-        last_name = translate_characters(profile_details['lastName'].lower(), args)
-        display_name = profile_details['displayName']
-        gender = profile_details['gender']
-
-        city =  translate_characters(profile_details['location']['city'], args) if profile_details['location']['city'] is not None else ""
-        street = translate_characters(profile_details['location']['street'], args) if profile_details['location']['street'] is not None else ""
-        xing_email_address = ""
-        mobile_number = ""
-        fax_number = ""
-        telephone_number = ""
-        zip_code = ""
-
-        if street:
-            contact_data = {
-                "operationName":"profileContactDetails",
-                "variables": {
-                    "profileId": profile_details['pageName']
-                },
-                "query":"query profileContactDetails($profileId: SlugOrID!) {\n  profileModules(id: $profileId) {\n    xingIdModule {\n      ...xingIdContactDetails\n      outdated\n      lastModified\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment xingIdContactDetails on XingIdModule {\n  contactDetails {\n    business {\n      address {\n        city\n        country {\n          countryCode\n          name: localizationValue\n          __typename\n        }\n        province {\n          id\n          canonicalName\n          name: localizationValue\n          __typename\n        }\n        street\n        zip\n        __typename\n      }\n      email\n      fax {\n        phoneNumber\n        __typename\n      }\n      mobile {\n        phoneNumber\n        __typename\n      }\n      phone {\n        phoneNumber\n        __typename\n      }\n      __typename\n    }\n    private {\n      address {\n        city\n        country {\n          countryCode\n          name: localizationValue\n          __typename\n        }\n        province {\n          id\n          canonicalName\n          name: localizationValue\n          __typename\n        }\n        street\n        zip\n        __typename\n      }\n      email\n      fax {\n        phoneNumber\n        __typename\n      }\n      mobile {\n        phoneNumber\n        __typename\n      }\n      phone {\n        phoneNumber\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}"
-            }
-            contact_data_response = requests.post(api_url, headers=headers, json=contact_data)
+        if profile_details is not None:
+        
+            profile_url = profile_details['clickReasonProfileUrl']['profileUrl'] if profile_details['clickReasonProfileUrl'] is not None else ""
             
-            if contact_data_response.status_code == 200:
-                contact_data_response = contact_data_response.json()
-                business_data = contact_data_response['data']['profileModules']['xingIdModule']['contactDetails']['business']
-                mobile_number = business_data['mobile']['phoneNumber'] if business_data['mobile'] is not None else ""
-                fax_number = business_data['fax']['phoneNumber'] if business_data['fax'] is not None else ""
-                telephone_number = business_data['phone']['phoneNumber'] if business_data['phone'] is not None else ""
-                zip_code = business_data['address']['zip'] if  business_data['address'] is not None else ""
-                xing_email_address = business_data['email']
+            first_name = translate_characters(profile_details['firstName'].lower(), args)
+            last_name = translate_characters(profile_details['lastName'].lower(), args)
+            display_name = profile_details['displayName']
+            gender = profile_details['gender']
+
+            city =  translate_characters(profile_details['location']['city'], args) if profile_details['location']['city'] is not None else ""
+            street = translate_characters(profile_details['location']['street'], args) if profile_details['location']['street'] is not None else ""
+            
+            xing_email_address = ""
+            mobile_number = ""
+            fax_number = ""
+            telephone_number = ""
+            zip_code = ""
+
+            if street:
+                contact_data = {
+                    "operationName":"profileContactDetails",
+                    "variables": {
+                        "profileId": profile_details['pageName']
+                    },
+                    "query":"query profileContactDetails($profileId: SlugOrID!) {\n  profileModules(id: $profileId) {\n    xingIdModule {\n      ...xingIdContactDetails\n      outdated\n      lastModified\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment xingIdContactDetails on XingIdModule {\n  contactDetails {\n    business {\n      address {\n        city\n        country {\n          countryCode\n          name: localizationValue\n          __typename\n        }\n        province {\n          id\n          canonicalName\n          name: localizationValue\n          __typename\n        }\n        street\n        zip\n        __typename\n      }\n      email\n      fax {\n        phoneNumber\n        __typename\n      }\n      mobile {\n        phoneNumber\n        __typename\n      }\n      phone {\n        phoneNumber\n        __typename\n      }\n      __typename\n    }\n    private {\n      address {\n        city\n        country {\n          countryCode\n          name: localizationValue\n          __typename\n        }\n        province {\n          id\n          canonicalName\n          name: localizationValue\n          __typename\n        }\n        street\n        zip\n        __typename\n      }\n      email\n      fax {\n        phoneNumber\n        __typename\n      }\n      mobile {\n        phoneNumber\n        __typename\n      }\n      phone {\n        phoneNumber\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}"
+                }
+                contact_data_response = requests.post(api_url, headers=headers, json=contact_data)
+
+                if contact_data_response.status_code == 200:
+                    contact_data_response = contact_data_response.json()
+                    business_data = contact_data_response['data']['profileModules']['xingIdModule']['contactDetails']['business']
+                    mobile_number = business_data['mobile']['phoneNumber'] if business_data['mobile'] is not None else ""
+                    fax_number = business_data['fax']['phoneNumber'] if business_data['fax'] is not None else ""
+                    telephone_number = business_data['phone']['phoneNumber'] if business_data['phone'] is not None else ""
+                    zip_code = business_data['address']['zip'] if  business_data['address'] is not None else ""
+                    xing_email_address = business_data['email']
+                else:
+                    print(f">>> Contact data request failed with status code {contact_data_response.status_code}")
+                    sys.exit(0)
+
+
+            occupations_all = profile_details['occupations']
+            occupations_list = [occupation['subline'] for occupation in occupations_all]
+            occupations = '| '.join(occupations_list)
+
+            if custom_email is None:
+                email_address = generate_email(first_name,last_name,args.domain,args.format)
             else:
-                print(f">>> Contact data request failed with status code {contact_data_response.status_code}")
-                sys.exit(0)
-            
+                email_address = generate_email(first_name,last_name,args.domain,1,custom_email)
 
-        occupations_all = profile_details['occupations']
-        occupations_list = [occupation['subline'] for occupation in occupations_all]
-        occupations = '| '.join(occupations_list)
-
-        if custom_email is None:
-            email_address = generate_email(first_name,last_name,args.domain,args.format)
-        else:
-            email_address = generate_email(first_name,last_name,args.domain,1,custom_email)
-
-        csv_entry = [f'{email_address}{args.csv_separator}{xing_email_address}{args.csv_separator}{display_name}{args.csv_separator}{first_name}{args.csv_separator}{last_name}{args.csv_separator}{gender}{args.csv_separator}{occupations}{args.csv_separator}{profile_url}{args.csv_separator}{city}{args.csv_separator}{street}{args.csv_separator}{zip_code}{args.csv_separator}{mobile_number}{args.csv_separator}{fax_number}{args.csv_separator}{telephone_number}']
-        data_list.append(csv_entry)
+            csv_entry = [f'{email_address}{args.csv_separator}{xing_email_address}{args.csv_separator}{display_name}{args.csv_separator}{first_name}{args.csv_separator}{last_name}{args.csv_separator}{gender}{args.csv_separator}{occupations}{args.csv_separator}{profile_url}{args.csv_separator}{city}{args.csv_separator}{street}{args.csv_separator}{zip_code}{args.csv_separator}{mobile_number}{args.csv_separator}{fax_number}{args.csv_separator}{telephone_number}']
+            data_list.append(csv_entry)
 
     return data_list
 
