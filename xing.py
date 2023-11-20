@@ -220,13 +220,16 @@ def authenticated_call(args,custom_email):
         sys.exit(0)
 
 def authenticated_employee_parsing(employee_response, args, custom_email, api_url, headers):
-    data_list = []
+    csv_data_list = []
 
     employees = employee_response['data']['company']['employees']['edges']
 
     if args.csv_header:
-        data_list.append([f"Email Address{args.csv_separator}Alternative Email Address{args.csv_separator}Display-Name{args.csv_separator}Firstname{args.csv_separator}Lastname{args.csv_separator}Gender{args.csv_separator}Occupations{args.csv_separator}Profile-URL{args.csv_separator}City{args.csv_separator}Street{args.csv_separator}ZIP{args.csv_separator}Mobile Number{args.csv_separator}Fax Number{args.csv_separator}Telephone number{args.csv_separator}"])
+        csv_data_list.append([f"Email Address{args.csv_separator}Alternative Email Address{args.csv_separator}Display-Name{args.csv_separator}Firstname{args.csv_separator}Lastname{args.csv_separator}Gender{args.csv_separator}Occupations{args.csv_separator}Profile-URL{args.csv_separator}City{args.csv_separator}Street{args.csv_separator}ZIP{args.csv_separator}Mobile Number{args.csv_separator}Fax Number{args.csv_separator}Telephone number{args.csv_separator}"])
 
+    potential_email_schemes = []
+    potential_name_schemes = []
+    employee_json_data = []
     # Extract and print employee information
     for edge in employees:
         node = edge['node']
@@ -266,7 +269,11 @@ def authenticated_employee_parsing(employee_response, args, custom_email, api_ur
                     fax_number = business_data['fax']['phoneNumber'] if business_data['fax'] is not None else ""
                     telephone_number = business_data['phone']['phoneNumber'] if business_data['phone'] is not None else ""
                     zip_code = business_data['address']['zip'] if  business_data['address'] is not None else ""
-                    xing_email_address = business_data['email']
+                    if business_data['email'] is not None:
+                        xing_email_address = business_data['email']
+                        split_email = business_data['email'].split("@")
+                        potential_email_schemes.append(split_email[1])
+                        potential_name_schemes.append(f"{split_email[0]}@{split_email[1]}")
                 else:
                     print(f">>> Contact data request failed with status code {contact_data_response.status_code}")
                     sys.exit(0)
@@ -276,15 +283,62 @@ def authenticated_employee_parsing(employee_response, args, custom_email, api_ur
             occupations_list = [occupation['subline'] for occupation in occupations_all]
             occupations = '| '.join(occupations_list)
 
-            if custom_email is None:
-                email_address = generate_email(first_name,last_name,args.domain,args.format)
+            csv_data = {
+                "profile_url": profile_url,
+                "first_name": first_name,
+                "last_name": last_name,
+                "display_name": display_name,
+                "gender": gender,
+                "occupations": occupations,
+                "city": city,
+                "street": street,
+                "zip_code": zip_code,
+                "mobile_number": mobile_number,
+                "fax_number": fax_number,
+                "telephone_number": telephone_number,
+                "xing_email_address": xing_email_address
+            }
+            
+            employee_json_data.append(csv_data)
+   
+    email_address = ""    
+    company_domain = args.domain
+    if custom_email is None:
+        potential_email_schemes = list(set(potential_email_schemes))
+        if len(potential_email_schemes) > 0:
+            for index, scheme in enumerate(potential_email_schemes, start=1):
+                print(f"{index}. {scheme}")
+            
+            if args.ignore:
+                user_choice  = 0
             else:
-                email_address = generate_email(first_name,last_name,args.domain,1,custom_email)
+                user_choice = input(">>> Potential email address schemes were discovered in the XING data. Do you wish to use any of them? If so, pick a number please or 0 to continue: ")
+            try:
+                user_choice = int(user_choice)
+                if user_choice == 0:
+                    print(f">>> Continuing with user-defined company domain >> {company_domain} <<")
+                elif 1 <= user_choice <= len(potential_email_schemes):
+                    company_domain = potential_email_schemes[user_choice - 1]
+                    print(f">>> Continuing with company domain >> {company_domain} <<")
+                else:
+                    print(">>> Invalid choice. Please enter a valid number.")
+            except ValueError:
+                print(">>> Invalid input. Please enter a number.")
 
-            csv_entry = [f'{email_address}{args.csv_separator}{xing_email_address}{args.csv_separator}{display_name}{args.csv_separator}{first_name}{args.csv_separator}{last_name}{args.csv_separator}{gender}{args.csv_separator}{occupations}{args.csv_separator}{profile_url}{args.csv_separator}{city}{args.csv_separator}{street}{args.csv_separator}{zip_code}{args.csv_separator}{mobile_number}{args.csv_separator}{fax_number}{args.csv_separator}{telephone_number}']
-            data_list.append(csv_entry)
+        for employee in employee_json_data:
+            email_address = generate_email(employee['first_name'],employee['last_name'],company_domain,args.format)
+            employee['email_address'] = email_address
+    else:
+        for employee in employee_json_data:
+            email_address = generate_email(employee['first_name'],employee['last_name'],company_domain,1,custom_email)
+            employee['email_address'] = email_address
+        
+    
+    for employee in employee_json_data:
+        csv_entry = [f"{employee['email_address']}{args.csv_separator}{employee['xing_email_address']}{args.csv_separator}{employee['display_name']}{args.csv_separator}{employee['first_name']}{args.csv_separator}{employee['last_name']}{args.csv_separator}{employee['gender']}{args.csv_separator}{employee['occupations']}{args.csv_separator}{employee['profile_url']}{args.csv_separator}{employee['city']}{args.csv_separator}{employee['street']}{args.csv_separator}{employee['zip_code']}{args.csv_separator}{employee['mobile_number']}{args.csv_separator}{employee['fax_number']}{args.csv_separator}{employee['telephone_number']}"]
+        csv_data_list.append(csv_entry)
 
-    return data_list
+    return csv_data_list, employee_json_data
 
 
 if __name__ == '__main__':
@@ -297,11 +351,12 @@ if __name__ == '__main__':
     parser.add_argument('--format', type=int, default=3, help='The structure of the company e-mail addresses. Default: 3. Currently, the following options are available: 1 -> {first_initial}{last_name}, 2 -> {first_name}{last_initial}, 3 -> {first_name}.{last_name}, 4 -> {first_name}_{last_name}, 5 -> {first_name}, 6 -> {last_name}')
     parser.add_argument('--custom-email', type=str, help='Optional: Custom email address structure, e.g. {first_initial}{last_name}')
     parser.add_argument('-s','--sort', type=str, default='CONNECTION_DEGREE', help='XING allows sorting between LAST_NAME and CONNECTION_DEGREE')
-    parser.add_argument('-o','--output', type=str, default='employees.csv', help='The name of the CSV file to save the output')
+    parser.add_argument('-o','--output', type=str, default='employees', help='The name of the CSV file to save the output')
     parser.add_argument('--csv-separator', type=str, default=";", help='Desired CVS file separator, default: ";"')
     parser.add_argument("--csv-header", action="store_true", help="Include header in CSV file")
     parser.add_argument("--stdout", action="store_true", help="Print results to screen")
     parser.add_argument('--double-name-separator', type=str, default="-", help='Desired separator for double names, default: "-"')
+    parser.add_argument('--ignore', action="store_true", help='Ignore interactive options')
     args = parser.parse_args()
 
     if not args.company:
@@ -324,13 +379,17 @@ if __name__ == '__main__':
 
     if not args.username or not args.password:
         print(">>> No user credentials were provided, preceding with unauthenticated search, which returns up to thirty employees.")
-        data_list = unauthenticated_call(args.company, args.domain, args.format, custom_email, args.csv_separator, args.csv_header)
+        csv_data_list = unauthenticated_call(args.company, args.domain, args.format, custom_email, args.csv_separator, args.csv_header)
     else:
-        data_list = authenticated_call(args, custom_email)
+        csv_data_list, json_data_list = authenticated_call(args, custom_email)
 
-    with open(output_file, 'w') as f:
+    with open(output_file + ".csv", 'w') as f:
             writer = csv.writer(f)
-            writer.writerows(data_list)
-            print(f">>> Employee data saved to {output_file}.")
+            writer.writerows(csv_data_list)
+            print(f">>> CSV-formatted employee data saved to {output_file}.csv")
+
+    with open(output_file + ".json", 'w') as json_file:
+        json.dump(json_data_list, json_file, indent=2)
+        print(f">>> JSON-formatted employee data saved to {output_file}.json")
     if args.stdout:
-        print('\n'.join(''.join(map(str,entry)) for entry in data_list))
+        print('\n'.join(''.join(map(str,entry)) for entry in csv_data_list))
