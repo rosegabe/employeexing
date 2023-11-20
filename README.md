@@ -19,8 +19,8 @@ This version is important, you will need it to get the correct verison for chrom
 
 ```bash
 usage: xing.py [-h] [-u USERNAME] [-p PASSWORD] [-c COMPANY] [--amount AMOUNT] [-d DOMAIN] [--format FORMAT]
-               [--custom-email CUSTOM_EMAIL] [-s SORT] [-o OUTPUT] [--csv-separator CSV_SEPARATOR] [--csv-header]
-               [--stdout] [--double-name-separator DOUBLE_NAME_SEPARATOR]
+               [--custom-email CUSTOM_EMAIL] [-s SORT] [-o OUTPUT] [--csv-separator CSV_SEPARATOR]
+               [--csv-header] [--stdout] [--double-name-separator DOUBLE_NAME_SEPARATOR] [--ignore]
 
 This OSINT tool was built for extracting XING employee data and generating e-mail addresses.
 
@@ -36,9 +36,9 @@ options:
   -d DOMAIN, --domain DOMAIN
                         The companies e-mail domain name
   --format FORMAT       The structure of the company e-mail addresses. Default: 3. Currently, the following
-                        options are available: 1 -> {first_initial}{last_name}, 2 -> {first_name}{last_initial}, 3
-                        -> {first_name}.{last_name}, 4 -> {first_name}_{last_name}, 5 -> {first_name}, 6 ->
-                        {last_name}
+                        options are available: 1 -> {first_initial}{last_name}, 2 ->
+                        {first_name}{last_initial}, 3 -> {first_name}.{last_name}, 4 ->
+                        {first_name}_{last_name}, 5 -> {first_name}, 6 -> {last_name}
   --custom-email CUSTOM_EMAIL
                         Optional: Custom email address structure, e.g. {first_initial}{last_name}
   -s SORT, --sort SORT  XING allows sorting between LAST_NAME and CONNECTION_DEGREE
@@ -50,4 +50,5 @@ options:
   --stdout              Print results to screen
   --double-name-separator DOUBLE_NAME_SEPARATOR
                         Desired separator for double names, default: "-"
+  --ignore              Ignore interactive options
 ```
