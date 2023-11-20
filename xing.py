@@ -63,6 +63,7 @@ def unauthenticated_call(company, domain, format_index, custom_email, csv_separa
         for key in company_unauthenticated_json.keys():
             if "xingid:" in key.lower():
                 employee_data = company_unauthenticated_json[key]
+            
                 page_name = employee_data['pageName']
                 profile_url = f"https://www.xing.com/profile/{page_name}"
                 #employee_id = employee_data['id']
@@ -382,14 +383,14 @@ if __name__ == '__main__':
         csv_data_list = unauthenticated_call(args.company, args.domain, args.format, custom_email, args.csv_separator, args.csv_header)
     else:
         csv_data_list, json_data_list = authenticated_call(args, custom_email)
+        with open(output_file + ".json", 'w') as json_file:
+            json.dump(json_data_list, json_file, indent=2)
+            print(f">>> JSON-formatted employee data saved to {output_file}.json")
 
     with open(output_file + ".csv", 'w') as f:
             writer = csv.writer(f)
             writer.writerows(csv_data_list)
             print(f">>> CSV-formatted employee data saved to {output_file}.csv")
 
-    with open(output_file + ".json", 'w') as json_file:
-        json.dump(json_data_list, json_file, indent=2)
-        print(f">>> JSON-formatted employee data saved to {output_file}.json")
     if args.stdout:
         print('\n'.join(''.join(map(str,entry)) for entry in csv_data_list))
